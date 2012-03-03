@@ -1,0 +1,17 @@
+package proto;
+
+message ToPaste {
+  optional string name = 1;
+  optional bytes  data = 2;
+}
+
+message Posted {
+  optional string url = 1;
+}
+
+message Empty {}
+
+service GoPaste {
+  rpc Paste (ToPaste) returns (Posted);
+  rpc Next (Empty) returns (Posted);
+}
