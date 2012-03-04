@@ -114,7 +114,7 @@ func (s *server) Paste(r *http.Request, in *proto.ToPaste, out *proto.Posted) er
 		name = *in.Name
 	}
 	if len(name) > *maxname {
-		name = name[*maxname]
+		name = name[:*maxname]
 	}
 
 	outURL := *URL
