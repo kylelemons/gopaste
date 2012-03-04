@@ -95,6 +95,10 @@ func (s *server) Paste(r *http.Request, in *proto.ToPaste, out *proto.Posted) er
 		return errors.New("cowardly refusing to create zero-length paste")
 	}
 
+	if len(in.Data) > *maxsize {
+		return errors.New("maximum paste size exceeded")
+	}
+
 	if len(s.opened) >= *maxcount {
 		log.Printf("Too many pastes; attempting purge...")
 		s.lock.Unlock()
