@@ -23,6 +23,7 @@ var (
 	base = flag.String("url", "http://paste.kylelemons.net:4114/", "Base URL on which we serve")
 	expiry = flag.Duration("expiry", 1*time.Hour, "Time to keep pastes")
 	maxsize = flag.Int("maxbytes", 1024*1024, "Max size of files")
+	maxname = flag.Int("maxname", 32, "Max length of name")
 	maxcount = flag.Int("maxcount", 100, "Max pastes to keep")
 )
 
@@ -111,6 +112,9 @@ func (s *server) Paste(r *http.Request, in *proto.ToPaste, out *proto.Posted) er
 		name = b64sha1(in.Data)[:10]
 	} else {
 		name = *in.Name
+	}
+	if len(name) > *maxname {
+		name = name[*maxname]
 	}
 
 	outURL := *URL
