@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 	_ "github.com/kylelemons/go-rpcgen/webrpc"
+	_ "net/http/pprof"
 )
 
 var (
