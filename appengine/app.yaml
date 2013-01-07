@@ -1,0 +1,21 @@
+application: kevlar-go-test
+version: gopaste
+runtime: go
+api_version: go1
+
+handlers:
+- url: /favicon.ico
+  static_files: favicon.ico
+  upload: favicon.ico
+  expiration: "7d"
+
+- url: /.*
+  script: _go_app
+  login: optional
+
+builtins:
+- datastore_admin: on
+- deferred: on
+
+inbound_services:
+- channel_presence

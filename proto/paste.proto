@@ -9,9 +9,6 @@ message Posted {
   optional string url = 1;
 }
 
-message Empty {}
-
 service GoPaste {
   rpc Paste (ToPaste) returns (Posted);
-  rpc Next (Empty) returns (Posted);
 }

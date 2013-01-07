@@ -1,20 +1,20 @@
 package main
 
 import (
-	"io/ioutil"
-	"os"
-	"log"
 	"flag"
-	"net/url"
-	"path/filepath"
 	"github.com/kylelemons/go-rpcgen/webrpc"
 	"github.com/kylelemons/gopaste/proto"
+	"io/ioutil"
+	"log"
+	"net/url"
+	"os"
+	"path/filepath"
 )
 
 var (
-	baseURL = flag.String("url", "http://paste.kylelemons.net:4114/", "The base URL of the GoPaste server")
-	name = flag.String("name", "", "The name of the paste (use filename or MD5 sum if not provided)")
-	fname = flag.String("f", "", "The name of a file to read (standard input if not provided)")
+	baseURL = flag.String("url", "http://gopaste.kevlar-go-test.appspot.com/", "The base URL of the GoPaste server")
+	name    = flag.String("name", "", "The name of the paste (use filename or MD5 sum if not provided)")
+	fname   = flag.String("f", "", "The name of a file to read (standard input if not provided)")
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("parse url: %s", err)
 	}
 
-	paste := proto.NewGoPasteWebClient(webrpc.ProtoBuf, url)
+	paste := proto.NewGoPasteWebClient(webrpc.JSON, url)
 
 	in, out := proto.ToPaste{}, proto.Posted{}
 	file := os.Stdin
