@@ -1,4 +1,4 @@
-package gopasted
+package server
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"appengine"
 	"appengine/datastore"
@@ -20,22 +21,10 @@ import (
 
 const (
 	expiry   = 1 * time.Hour // Time to keep pastes
-	maxsize  = 1024 * 1024   // Max size of files
+	maxsize  = 1000 * 1000   // Max size of files
 	maxname  = 32            // Max length of name
 	maxcount = 100           // Max pastes to keep
 )
-
-// URL holds the base URL on which we serve
-var URL *url.URL
-
-func init() {
-	// AppEngine
-	URL = &url.URL{
-		Scheme: "http",
-		Host:   "gopaste.kevlar-go-test.appspot.com",
-		Path:   "/",
-	}
-}
 
 func b64sha1(data []byte) string {
 	sha1 := sha1.New()
@@ -54,7 +43,9 @@ type server struct{}
 var Server = &server{}
 
 type paste struct {
-	Data []byte
+	Origin string
+	Pasted time.Time
+	Data   []byte
 }
 
 func (s *server) Paste(r *http.Request, in *proto.ToPaste, out *proto.Posted) error {
@@ -68,6 +59,10 @@ func (s *server) Paste(r *http.Request, in *proto.ToPaste, out *proto.Posted) er
 		return errors.New("maximum paste size exceeded")
 	}
 
+	if !utf8.Valid(in.Data) {
+		return errors.New("invalid UTF-8 data (you can only paste text)")
+	}
+
 	// Sanitize name
 	name := in.GetName()
 	if name == "" {
@@ -79,17 +74,28 @@ func (s *server) Paste(r *http.Request, in *proto.ToPaste, out *proto.Posted) er
 	ctx.Infof("Accepting %q (%d bytes)", name, len(in.Data))
 
 	key := datastore.NewKey(ctx, "paste", name, 0, nil)
-	if _, err := datastore.Put(ctx, key, &paste{in.Data}); err != nil {
+	p := &paste{
+		Origin: r.RemoteAddr,
+		Pasted: time.Now().UTC(),
+		Data:   in.Data,
+	}
+	if _, err := datastore.Put(ctx, key, p); err != nil {
 		ctx.Errorf("put(%q): %s", name, err)
 		return err
 	}
 
+	if r.Host == "" {
+		r.Host = "gopaste.kevlar-go-test.appspot.com"
+	}
+
 	// Compute the pasted URL
-	outURL := *URL
-	outURL.Path = path.Join(outURL.Path, name)
-	strURL := outURL.String()
-	out.Url = &strURL
-	broadcastPaste.Call(ctx, strURL)
+	outURL := (&url.URL{
+		Scheme: "http",
+		Host:   r.Host,
+		Path:   path.Join("/", name),
+	}).String()
+	out.Url = &outURL
+	broadcastPaste.Call(ctx, outURL)
 	return nil
 }
 

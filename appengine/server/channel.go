@@ -1,4 +1,4 @@
-package gopasted
+package server
 
 import (
 	"io"

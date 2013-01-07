@@ -13,6 +13,10 @@ handlers:
   script: _go_app
   login: optional
 
+- url: /admin/.*
+  script: _go_app
+  login: required
+
 builtins:
 - datastore_admin: on
 - deferred: on
