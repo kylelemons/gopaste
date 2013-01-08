@@ -19,27 +19,40 @@ var PasteServer = url.URL{
 // Subscribe creates a channel with the given Client ID and sends all new URLs
 // on the urls channel.  Subscribe blocks until the connection fails.  If there
 // is an error in setup, decoding, or when the connection fails, Subscribe
-// returns the offending error.
+// returns the offending error.  If there is an error in authentication, Subscribe
+// attempts to reauthenticate.  The urls channel will be closed before Subscribe
+// returns.
 func Subscribe(clientID string, urls chan<- string) error {
-	u := PasteServer
-	u.Path = "/listen/"
-	u.RawQuery = url.Values{
-		"clientID": {clientID},
-	}.Encode()
+	defer close(urls)
+	do := func() error {
+		u := PasteServer
+		u.Path = "/listen/"
+		u.RawQuery = url.Values{
+			"clientID": {clientID},
+		}.Encode()
 
-	// Get a token
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return fmt.Errorf("get token: %s", err)
-	}
-	rawtok, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return fmt.Errorf("read token: %s", err)
-	}
-	token := strings.TrimSpace(string(rawtok))
+		// Get a token
+		resp, err := http.Get(u.String())
+		if err != nil {
+			return fmt.Errorf("get token: %s", err)
+		}
+		rawtok, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return fmt.Errorf("read token: %s", err)
+		}
+		token := strings.TrimSpace(string(rawtok))
 
-	channel := gaechannel.New(PasteServer.Host, clientID, token)
-	defer channel.Close()
-	return channel.Stream(urls)
+		channel := gaechannel.New(PasteServer.Host, clientID, token)
+		defer channel.Close()
+
+		return channel.Stream(urls)
+	}
+
+reauth:
+	err := do()
+	if err == gaechannel.ErrReauth {
+		goto reauth
+	}
+	return err
 }
